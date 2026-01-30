@@ -1,0 +1,17 @@
+{
+  "env": "prod",
+  "ws_url": "wss://api.elections.kalshi.com/trade-api/ws/v2",
+  "subscription": {
+    "channels": ["orderbook_delta"],
+    "market_tickers": ["KXGOVSHUT-26JAN31"]
+  },
+  "logging": {
+    "level": "info",
+    "queue_size": 10000,
+    "drop_policy": "drop_oldest",
+    "include_raw_on_parse_error": true
+  },
+  "output": {
+    "raw_messages_path": "logs/ws_messages.json"
+  }
+}

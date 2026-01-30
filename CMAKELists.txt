@@ -1,0 +1,40 @@
+cmake_minimum_required(VERSION 3.28)
+project(kalshi_autotrader LANGUAGES CXX)
+
+cmake_policy(SET CMP0167 NEW)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+endif()
+
+add_library(kalshi_core
+  src/kalshi/config.cpp
+  src/kalshi/auth.cpp
+  src/kalshi/md/protocol.cpp
+  src/kalshi/md/message_parser.cpp
+  src/kalshi/md/event_parser.cpp
+  src/kalshi/md/feed_handler.cpp
+  src/kalshi/md/ws_client.cpp
+)
+target_include_directories(kalshi_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+find_package(Boost CONFIG REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(simdjson REQUIRED)
+target_link_libraries(kalshi_core PUBLIC Boost::headers)
+target_link_libraries(kalshi_core PRIVATE OpenSSL::SSL OpenSSL::Crypto simdjson::simdjson)
+
+add_executable(kalshi_autotrader
+  src/main.cpp
+)
+
+target_link_libraries(kalshi_autotrader PRIVATE kalshi_core)

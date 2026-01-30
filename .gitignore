@@ -1,0 +1,15 @@
+/build/
+/.vscode/
+/.cache/
+/planning/
+/logs/
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+*.out
+compile_commands.json
+ws_messages.json
+pkey.pem
+*.pem
