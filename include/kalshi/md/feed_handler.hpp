@@ -1,28 +1,27 @@
 #pragma once
 
+#include "kalshi/logging/logger.hpp"
+#include "kalshi/md/dispatcher.hpp"
 #include "kalshi/md/model/market_sink.hpp"
-#include "kalshi/md/file_raw_message_sink.hpp"
-#include "kalshi/md/message_pipeline.hpp"
-#include "kalshi/md/run_limiter.hpp"
 #include "kalshi/md/ws/ws_client.hpp"
 #include "kalshi/md/ws/ws_constants.hpp"
-#include "kalshi/logging/logger.hpp"
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/steady_timer.hpp>
 
-#include <cstdint>
+#include <algorithm>
+#include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <expected>
+#include <filesystem>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
-#include <algorithm>
-#include <chrono>
-#include <chrono>
 
 namespace kalshi::md
 {
@@ -40,7 +39,7 @@ namespace kalshi::md
      * @param logger Logger for diagnostics.
      */
     FeedHandler(Sink &sink, kalshi::logging::Logger &logger)
-        : sink_(sink), logger_(logger) {}
+        : sink_(sink), logger_(logger), dispatcher_(sink_) {}
 
     /**
      * Errors returned by run().
@@ -76,8 +75,9 @@ namespace kalshi::md
     struct RunState
     {
       std::string subscribe_cmd;
-      std::shared_ptr<MessagePipeline<Sink>> pipeline;
-      std::shared_ptr<RunLimiter> limiter;
+      std::shared_ptr<std::ofstream> out;
+      std::size_t remaining = 0;
+      std::size_t seen = 0;
       std::shared_ptr<WsClient> client;
       std::shared_ptr<boost::asio::steady_timer> reconnect_timer;
       std::string ws_url;
@@ -89,6 +89,8 @@ namespace kalshi::md
       std::chrono::milliseconds handshake_timeout{30000};
       std::chrono::milliseconds idle_timeout{60000};
       bool keep_alive_pings = true;
+      bool include_raw_on_parse_error = true;
+      bool log_raw_messages = false;
       boost::asio::io_context *ioc = nullptr;
       boost::asio::ssl::context *ssl_ctx = nullptr;
     };
@@ -122,18 +124,27 @@ namespace kalshi::md
   private:
     [[nodiscard]] std::expected<RunState, RunError> init_state(const RunOptions &options)
     {
-      auto raw_sink = std::make_unique<FileRawMessageSink>(options.output_path);
-      if (!raw_sink->ok())
+      std::filesystem::path path(options.output_path);
+      if (path.has_parent_path())
+      {
+        std::error_code ec;
+        std::filesystem::create_directories(path.parent_path(), ec);
+        if (ec)
+        {
+          return std::unexpected(RunError::OutputOpenFailed);
+        }
+      }
+
+      auto out = std::make_shared<std::ofstream>(options.output_path, std::ios::out);
+      if (!out->is_open())
       {
         return std::unexpected(RunError::OutputOpenFailed);
       }
 
       RunState state{.subscribe_cmd = options.subscribe_cmd,
-                     .pipeline = std::make_shared<MessagePipeline<Sink>>(
-                         sink_, logger_, std::move(raw_sink),
-                         options.include_raw_on_parse_error,
-                         options.log_raw_messages),
-                     .limiter = std::make_shared<RunLimiter>(options.max_messages),
+                     .out = std::move(out),
+                     .remaining = options.max_messages,
+                     .seen = 0,
                      .client = nullptr,
                      .reconnect_timer = nullptr,
                      .ws_url = options.ws_url,
@@ -145,6 +156,8 @@ namespace kalshi::md
                      .handshake_timeout = options.handshake_timeout,
                      .idle_timeout = options.idle_timeout,
                      .keep_alive_pings = options.keep_alive_pings,
+                     .include_raw_on_parse_error = options.include_raw_on_parse_error,
+                     .log_raw_messages = options.log_raw_messages,
                      .ioc = nullptr,
                      .ssl_ctx = nullptr};
       return state;
@@ -190,18 +203,43 @@ namespace kalshi::md
                     RunState &state,
                     std::string msg)
     {
-      if (state.limiter->seen() == 0)
+      (*state.out) << msg << "\n";
+      state.out->flush();
+
+      if (state.log_raw_messages)
+      {
+        kalshi::logging::LogFields fields;
+        fields.add_uint("bytes", static_cast<std::uint64_t>(msg.size()));
+        fields.add_uint("count", static_cast<std::uint64_t>(state.seen));
+        logger_.log_raw(kalshi::logging::LogLevel::Debug, "md.ws_client",
+                        "ws_message", std::move(fields), msg);
+      }
+
+      if (state.seen == 0)
       {
         log_info("md.feed_handler", "first_message_received");
       }
-      state.limiter->on_message();
-      state.pipeline->on_message(msg);
+      ++state.seen;
 
-      if (state.limiter->should_stop())
+      auto dispatched = dispatcher_.on_message(msg);
+      if (!dispatched && dispatched.error() != ParseError::UnsupportedType)
       {
-        log_info("md.feed_handler", "max_messages_reached");
-        state.client->close();
-        ioc.stop();
+        log_parse_error(dispatched.error(), msg, state.include_raw_on_parse_error);
+      }
+      if (!dispatched && dispatched.error() == ParseError::UnsupportedType)
+      {
+        log_debug("md.dispatcher", "unsupported_message_type");
+      }
+
+      if (state.remaining > 0)
+      {
+        --state.remaining;
+        if (state.remaining == 0)
+        {
+          log_info("md.feed_handler", "max_messages_reached");
+          state.client->close();
+          ioc.stop();
+        }
       }
     }
 
@@ -231,8 +269,9 @@ namespace kalshi::md
       logger_.log(kalshi::logging::LogLevel::Debug, "md.ws_client",
                   kind == boost::beast::websocket::frame_type::ping
                       ? "ws_ping"
-                      : kind == boost::beast::websocket::frame_type::pong ? "ws_pong"
-                                                                         : "ws_control",
+                      : kind == boost::beast::websocket::frame_type::pong
+                            ? "ws_pong"
+                            : "ws_control",
                   std::move(fields));
     }
 
@@ -264,9 +303,6 @@ namespace kalshi::md
       });
     }
 
-    Sink &sink_;
-    kalshi::logging::Logger &logger_;
-
     void log_info(std::string_view component, std::string_view message)
     {
       logger_.log(kalshi::logging::LogLevel::Info, std::string(component),
@@ -285,6 +321,25 @@ namespace kalshi::md
                   std::string(message));
     }
 
+    void log_parse_error(ParseError error,
+                         std::string_view raw,
+                         bool include_raw)
+    {
+      kalshi::logging::LogFields fields;
+      fields.add_int("parse_error", static_cast<std::int64_t>(error));
+      if (include_raw)
+      {
+        logger_.log_raw(kalshi::logging::LogLevel::Warn, "md.dispatcher",
+                        "parse_error", std::move(fields), std::string(raw));
+        return;
+      }
+      logger_.log(kalshi::logging::LogLevel::Warn, "md.dispatcher",
+                  "parse_error", std::move(fields));
+    }
+
+    Sink &sink_;
+    kalshi::logging::Logger &logger_;
+    Dispatcher<Sink> dispatcher_;
   };
 
 } // namespace kalshi::md
