@@ -26,6 +26,7 @@ add_library(kalshi_core
   src/kalshi/md/message_parser.cpp
   src/kalshi/md/event_parser.cpp
   src/kalshi/md/feed_handler.cpp
+  src/kalshi/md/file_raw_message_sink.cpp
   src/kalshi/md/ws_client.cpp
 )
 target_include_directories(kalshi_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
