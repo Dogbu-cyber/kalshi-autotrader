@@ -61,6 +61,17 @@ void WsClient::set_error_callback(ErrorCallback cb) {
   on_error_ = std::move(cb);
 }
 void WsClient::set_open_callback(OpenCallback cb) { on_open_ = std::move(cb); }
+void WsClient::set_control_callback(ControlCallback cb) {
+  on_control_ = std::move(cb);
+}
+
+void WsClient::set_timeouts(std::chrono::seconds handshake_timeout,
+                            std::chrono::seconds idle_timeout,
+                            bool keep_alive_pings) {
+  handshake_timeout_ = handshake_timeout;
+  idle_timeout_ = idle_timeout;
+  keep_alive_pings_ = keep_alive_pings;
+}
 
 void WsClient::connect(const std::string &url,
                        const std::vector<kalshi::Header> &headers) {
@@ -77,6 +88,7 @@ void WsClient::connect(const std::string &url,
 
   configure_timeouts();
   configure_headers();
+  configure_control_callback();
   resolve_host(std::move(port));
 }
 
@@ -179,8 +191,11 @@ void WsClient::fail(WsError err, std::string_view msg) {
 }
 
 void WsClient::configure_timeouts() {
-  ws_.set_option(boost::beast::websocket::stream_base::timeout::suggested(
-      boost::beast::role_type::client));
+  boost::beast::websocket::stream_base::timeout opts;
+  opts.handshake_timeout = handshake_timeout_;
+  opts.idle_timeout = idle_timeout_;
+  opts.keep_alive_pings = keep_alive_pings_;
+  ws_.set_option(opts);
 }
 
 void WsClient::configure_headers() {
@@ -190,6 +205,15 @@ void WsClient::configure_headers() {
           req.set(header.first, header.second);
         }
       }));
+}
+
+void WsClient::configure_control_callback() {
+  ws_.control_callback([this](boost::beast::websocket::frame_type kind,
+                              boost::beast::string_view payload) {
+    if (on_control_) {
+      on_control_(kind, std::string_view(payload.data(), payload.size()));
+    }
+  });
 }
 
 void WsClient::resolve_host(std::string port) {

@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <chrono>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -15,6 +16,7 @@
 #include <boost/beast/websocket.hpp>
 
 #include "kalshi/core/auth.hpp"
+#include "kalshi/md/ws/ws_constants.hpp"
 
 namespace kalshi::md
 {
@@ -53,6 +55,8 @@ namespace kalshi::md
     using MessageCallback = std::function<void(std::string)>;
     using ErrorCallback = std::function<void(WsError, std::string_view)>;
     using OpenCallback = std::function<void()>;
+    using ControlCallback =
+        std::function<void(boost::beast::websocket::frame_type, std::string_view)>;
 
     /**
      * Construct client with IO and SSL contexts.
@@ -79,6 +83,23 @@ namespace kalshi::md
      * @return void.
      */
     void set_open_callback(OpenCallback cb);
+    /**
+     * Register callback for websocket control frames (ping/pong/close).
+     * @param cb Callback to invoke.
+     * @return void.
+     */
+    void set_control_callback(ControlCallback cb);
+
+    /**
+     * Configure websocket timeouts.
+     * @param handshake_timeout Timeout for handshake.
+     * @param idle_timeout Idle timeout for read/write.
+     * @param keep_alive_pings Whether to emit keep-alive pings.
+     * @return void.
+     */
+    void set_timeouts(std::chrono::seconds handshake_timeout,
+                      std::chrono::seconds idle_timeout,
+                      bool keep_alive_pings);
 
     /**
      * Connect to websocket and apply headers.
@@ -108,11 +129,12 @@ namespace kalshi::md
     void on_ws_handshake(boost::system::error_code ec);
     void do_read();
     void on_read(boost::system::error_code ec, std::size_t bytes);
-  void on_write(boost::system::error_code ec, std::size_t bytes);
-  void fail(WsError err, std::string_view msg);
-  void configure_timeouts();
-  void configure_headers();
-  void resolve_host(std::string port);
+    void on_write(boost::system::error_code ec, std::size_t bytes);
+    void fail(WsError err, std::string_view msg);
+    void configure_timeouts();
+    void configure_headers();
+    void resolve_host(std::string port);
+    void configure_control_callback();
 
     boost::asio::ip::tcp::resolver resolver_;
     boost::beast::websocket::stream<
@@ -127,6 +149,11 @@ namespace kalshi::md
     MessageCallback on_message_;
     ErrorCallback on_error_;
     OpenCallback on_open_;
+    ControlCallback on_control_;
+
+    std::chrono::seconds handshake_timeout_{CONNECT_TIMEOUT};
+    std::chrono::seconds idle_timeout_{IDLE_TIMEOUT};
+    bool keep_alive_pings_{true};
   };
 
 } // namespace kalshi::md

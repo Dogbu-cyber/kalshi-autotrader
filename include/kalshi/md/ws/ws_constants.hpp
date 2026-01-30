@@ -14,5 +14,7 @@ inline constexpr std::string_view WSS_PREFIX = "wss://";
  * @return Timeout duration.
  */
 inline constexpr std::chrono::seconds CONNECT_TIMEOUT{30};
+/** Default websocket idle timeout. */
+inline constexpr std::chrono::seconds IDLE_TIMEOUT{60};
 
 } // namespace kalshi::md
