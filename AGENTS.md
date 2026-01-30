@@ -10,6 +10,7 @@ This repo builds a Kalshi market-data research platform in C++23. It prioritizes
 
 ## Architecture (current)
 - `include/kalshi/core/` — auth/config/endpoints
+- `include/kalshi/logging/` — async JSON logger + log types
 - `include/kalshi/md/model/` — types + market event structs + sink concept
 - `include/kalshi/md/parse/` — parsing helpers, JSON field constants
 - `include/kalshi/md/protocol/` — message type constants + subscribe protocol
@@ -31,6 +32,8 @@ This repo builds a Kalshi market-data research platform in C++23. It prioritizes
 - `subscription.channels`
 - `subscription.market_tickers` (required for `ORDERBOOK_DELTA`)
 - `logging.*` optional (defaults applied if omitted)
+- `logging.output_path` optional (defaults applied if omitted)
+- `logging.log_raw_messages` optional (defaults applied if omitted)
 - `output.*` optional (defaults applied if omitted)
 
 ## Secrets
