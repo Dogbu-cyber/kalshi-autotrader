@@ -136,6 +136,17 @@ std::expected<OutputConfig, ConfigError> parse_output(simdjson::ondemand::object
   return OutputConfig{.raw_messages_path = std::move(*path)};
 }
 
+LoggingConfig default_logging_config() {
+  return LoggingConfig{.level = "info",
+                       .queue_size = 10000,
+                       .drop_policy = "drop_oldest",
+                       .include_raw_on_parse_error = true};
+}
+
+OutputConfig default_output_config() {
+  return OutputConfig{.raw_messages_path = "logs/ws_messages.json"};
+}
+
 } // namespace
 
 std::expected<Config, ConfigError> load_config(const std::string& path) {
@@ -163,18 +174,34 @@ std::expected<Config, ConfigError> load_config(const std::string& path) {
   auto env = get_string(root.value(), "env");
   auto ws_url = get_string(root.value(), "ws_url");
   auto subscription = parse_subscription(root.value());
-  auto logging = parse_logging(root.value());
-  auto output = parse_output(root.value());
 
-  if (!env || !ws_url || !subscription || !logging || !output) {
+  LoggingConfig logging = default_logging_config();
+  if (auto log = root.value()["logging"]; !log.error()) {
+    auto parsed = parse_logging(root.value());
+    if (!parsed) {
+      return std::unexpected(ConfigError::ParseFailed);
+    }
+    logging = std::move(*parsed);
+  }
+
+  OutputConfig output = default_output_config();
+  if (auto out = root.value()["output"]; !out.error()) {
+    auto parsed = parse_output(root.value());
+    if (!parsed) {
+      return std::unexpected(ConfigError::ParseFailed);
+    }
+    output = std::move(*parsed);
+  }
+
+  if (!env || !ws_url || !subscription) {
     return std::unexpected(ConfigError::ParseFailed);
   }
 
   return Config{.env = std::move(*env),
                 .ws_url = std::move(*ws_url),
                 .subscription = std::move(*subscription),
-                .logging = std::move(*logging),
-                .output = std::move(*output)};
+                .logging = std::move(logging),
+                .output = std::move(output)};
 }
 
 std::string resolve_ws_url(const Config& config) { return config.ws_url; }

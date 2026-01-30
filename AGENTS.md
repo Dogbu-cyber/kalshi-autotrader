@@ -25,16 +25,13 @@ This repo builds a Kalshi market-data research platform in C++23. It prioritizes
 - Avoid implicit defaults in config; `config.json` is source of truth.
 
 ## Config
-`config.json` must include:
+- `config.json` must include:
 - `env`
 - `ws_url`
 - `subscription.channels`
 - `subscription.market_tickers` (required for `ORDERBOOK_DELTA`)
-- `logging.level`
-- `logging.queue_size`
-- `logging.drop_policy`
-- `logging.include_raw_on_parse_error`
-- `output.raw_messages_path`
+- `logging.*` optional (defaults applied if omitted)
+- `output.*` optional (defaults applied if omitted)
 
 ## Secrets
 - Do NOT commit secrets. `pkey.pem` should remain local.
