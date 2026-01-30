@@ -8,21 +8,18 @@
 namespace kalshi
 {
 
-  // Errors returned when reading or parsing config.json.
   enum class ConfigError
   {
     FileOpenFailed,
     ParseFailed
   };
 
-  // Websocket subscription parameters.
   struct SubscriptionConfig
   {
     std::vector<std::string> channels;
     std::vector<std::string> market_tickers;
   };
 
-  // Logging configuration (bounded queue + async writer).
   struct LoggingConfig
   {
     std::string level;
@@ -33,13 +30,11 @@ namespace kalshi
     std::string output_path;
   };
 
-  // Output file paths for raw message dumps.
   struct OutputConfig
   {
     std::string raw_messages_path;
   };
 
-  // Top-level runtime config loaded from config.json.
   struct Config
   {
     std::string env;

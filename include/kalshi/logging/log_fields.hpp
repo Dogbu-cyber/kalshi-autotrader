@@ -9,18 +9,15 @@
 namespace kalshi::logging
 {
 
-  // Supported value types for structured log fields.
   using LogFieldValue = std::variant<std::string, std::int64_t, std::uint64_t, double, bool,
                                      std::vector<std::string>>;
 
-  // Single key/value field.
   struct LogField
   {
     std::string key;
     LogFieldValue value;
   };
 
-  // Helper for building a list of structured fields.
   class LogFields
   {
   public:
@@ -54,9 +51,7 @@ namespace kalshi::logging
       fields_.push_back(LogField{std::move(key), std::move(values)});
     }
 
-    // True when no fields were added.
     [[nodiscard]] bool empty() const { return fields_.empty(); }
-    // Access raw entries for serialization.
     [[nodiscard]] const std::vector<LogField> &entries() const { return fields_; }
 
   private:

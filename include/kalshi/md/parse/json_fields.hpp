@@ -3,7 +3,6 @@
 namespace kalshi::md
 {
 
-  // JSON field names for websocket payloads.
   inline constexpr const char *FIELD_TYPE = "type";
   inline constexpr const char *FIELD_SEQ = "seq";
   inline constexpr const char *FIELD_MSG = "msg";

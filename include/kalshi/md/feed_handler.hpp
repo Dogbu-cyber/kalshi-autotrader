@@ -22,7 +22,6 @@
 namespace kalshi::md
 {
 
-  // Owns websocket connection and dispatches messages to a sink.
   template <MarketSink Sink>
   class FeedHandler
   {
@@ -35,14 +34,12 @@ namespace kalshi::md
     void handle_trade(const TradeEvent &t) { sink_.on_trade(t); }
     void handle_status(const MarketStatusUpdate &u) { sink_.on_status(u); }
 
-    // Errors during startup or output initialization.
     enum class RunError
     {
       OutputOpenFailed,
       OutputPathInvalid
     };
 
-    // Runtime options for websocket run.
     struct RunOptions
     {
       std::string ws_url;
@@ -54,7 +51,6 @@ namespace kalshi::md
       std::size_t max_messages = 0; // 0 = unlimited
     };
 
-    // Shared state for callbacks across async operations.
     struct RunState
     {
       std::shared_ptr<std::ofstream> out;
@@ -66,7 +62,6 @@ namespace kalshi::md
       bool log_raw_messages = false;
     };
 
-    // Start websocket loop and dispatch messages until stopped.
     [[nodiscard]] std::expected<void, RunError> run(boost::asio::io_context &ioc,
                                                     boost::asio::ssl::context &ssl_ctx,
                                                     RunOptions options)
@@ -96,7 +91,6 @@ namespace kalshi::md
     }
 
   private:
-    // Validate output path and construct shared run state.
     [[nodiscard]] std::expected<RunState, RunError> init_state(const RunOptions &options)
     {
       RunState state;
@@ -125,7 +119,6 @@ namespace kalshi::md
       return state;
     }
 
-    // Wire websocket callbacks to handler methods.
     void configure_callbacks(WsClient &client,
                              boost::asio::io_context &ioc,
                              RunState &state,
@@ -139,7 +132,6 @@ namespace kalshi::md
                                 { on_error(ioc, err, msg); });
     }
 
-    // Send subscribe command after connection opens.
     void on_open(WsClient *client_ptr, std::string &cmd)
     {
       log_info("md.ws_client", "ws_open");
@@ -149,7 +141,6 @@ namespace kalshi::md
       }
     }
 
-    // Persist raw message, dispatch parsed events, and honor max_messages.
     void on_message(boost::asio::io_context &ioc,
                     RunState &state,
                     WsClient *client_ptr,
@@ -193,7 +184,6 @@ namespace kalshi::md
       }
     }
 
-    // Log error and stop IO loop.
     void on_error(boost::asio::io_context &ioc, WsError err, std::string_view msg)
     {
       kalshi::logging::LogFields fields;
