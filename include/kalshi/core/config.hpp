@@ -5,38 +5,53 @@
 #include <string>
 #include <vector>
 
-namespace kalshi {
+namespace kalshi
+{
 
-enum class ConfigError {
-  FileOpenFailed,
-  ParseFailed
-};
+  // Errors returned when reading or parsing config.json.
+  enum class ConfigError
+  {
+    FileOpenFailed,
+    ParseFailed
+  };
 
-struct SubscriptionConfig {
-  std::vector<std::string> channels;
-  std::vector<std::string> market_tickers;
-};
+  // Websocket subscription parameters.
+  struct SubscriptionConfig
+  {
+    std::vector<std::string> channels;
+    std::vector<std::string> market_tickers;
+  };
 
-struct LoggingConfig {
-  std::string level;
-  std::size_t queue_size;
-  std::string drop_policy;
-  bool include_raw_on_parse_error;
-};
+  // Logging configuration (bounded queue + async writer).
+  struct LoggingConfig
+  {
+    std::string level;
+    std::size_t queue_size;
+    std::string drop_policy;
+    bool include_raw_on_parse_error;
+    bool log_raw_messages;
+    std::string output_path;
+  };
 
-struct OutputConfig {
-  std::string raw_messages_path;
-};
+  // Output file paths for raw message dumps.
+  struct OutputConfig
+  {
+    std::string raw_messages_path;
+  };
 
-struct Config {
-  std::string env;
-  std::string ws_url;
-  SubscriptionConfig subscription;
-  LoggingConfig logging;
-  OutputConfig output;
-};
+  // Top-level runtime config loaded from config.json.
+  struct Config
+  {
+    std::string env;
+    std::string ws_url;
+    SubscriptionConfig subscription;
+    LoggingConfig logging;
+    OutputConfig output;
+  };
 
-[[nodiscard]] std::expected<Config, ConfigError> load_config(const std::string& path);
-[[nodiscard]] std::string resolve_ws_url(const Config& config);
+  // Load config.json from disk.
+  [[nodiscard]] std::expected<Config, ConfigError> load_config(const std::string &path);
+  // Resolve final websocket URL (env overrides, if any).
+  [[nodiscard]] std::string resolve_ws_url(const Config &config);
 
 } // namespace kalshi

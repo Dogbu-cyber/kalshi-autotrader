@@ -9,7 +9,9 @@
     "level": "info",
     "queue_size": 10000,
     "drop_policy": "drop_oldest",
-    "include_raw_on_parse_error": true
+    "include_raw_on_parse_error": true,
+    "log_raw_messages": true,
+    "output_path": "logs/kalshi.log.json"
   },
   "output": {
     "raw_messages_path": "logs/ws_messages.json"
