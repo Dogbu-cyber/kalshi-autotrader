@@ -22,6 +22,17 @@ namespace kalshi
     std::vector<std::string> market_tickers;
   };
 
+  /** Websocket connection and reconnect configuration. */
+  struct WsConfig
+  {
+    std::int64_t handshake_timeout_ms;
+    std::int64_t idle_timeout_ms;
+    bool keep_alive_pings;
+    bool auto_reconnect;
+    std::int64_t reconnect_initial_delay_ms;
+    std::int64_t reconnect_max_delay_ms;
+  };
+
   /** Logging configuration for async logger. */
   struct LoggingConfig
   {
@@ -45,6 +56,7 @@ namespace kalshi
     std::string env;
     std::string ws_url;
     SubscriptionConfig subscription;
+    WsConfig ws;
     LoggingConfig logging;
     OutputConfig output;
   };

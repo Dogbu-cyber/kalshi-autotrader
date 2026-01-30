@@ -141,6 +141,71 @@ namespace kalshi
                                 .market_tickers = std::move(*tickers)};
     }
 
+    std::expected<WsConfig, ConfigError>
+    parse_ws(simdjson::ondemand::object &root, WsConfig base)
+    {
+      auto ws = root["ws"].get_object();
+      if (ws.error())
+      {
+        return std::unexpected(ConfigError::ParseFailed);
+      }
+
+      auto handshake_timeout_ms = get_optional_size(ws.value(), "handshake_timeout_ms");
+      auto idle_timeout_ms = get_optional_size(ws.value(), "idle_timeout_ms");
+      auto keep_alive_pings = get_optional_bool(ws.value(), "keep_alive_pings");
+      auto auto_reconnect = get_optional_bool(ws.value(), "auto_reconnect");
+      auto reconnect_initial_delay_ms =
+          get_optional_size(ws.value(), "reconnect_initial_delay_ms");
+      auto reconnect_max_delay_ms =
+          get_optional_size(ws.value(), "reconnect_max_delay_ms");
+
+      if (!handshake_timeout_ms || !idle_timeout_ms || !keep_alive_pings ||
+          !auto_reconnect || !reconnect_initial_delay_ms || !reconnect_max_delay_ms)
+      {
+        return std::unexpected(ConfigError::ParseFailed);
+      }
+
+      if (handshake_timeout_ms->has_value())
+      {
+        base.handshake_timeout_ms =
+            static_cast<std::int64_t>(**handshake_timeout_ms);
+      }
+      if (idle_timeout_ms->has_value())
+      {
+        base.idle_timeout_ms = static_cast<std::int64_t>(**idle_timeout_ms);
+      }
+      if (keep_alive_pings->has_value())
+      {
+        base.keep_alive_pings = **keep_alive_pings;
+      }
+      if (auto_reconnect->has_value())
+      {
+        base.auto_reconnect = **auto_reconnect;
+      }
+      if (reconnect_initial_delay_ms->has_value())
+      {
+        base.reconnect_initial_delay_ms =
+            static_cast<std::int64_t>(**reconnect_initial_delay_ms);
+      }
+      if (reconnect_max_delay_ms->has_value())
+      {
+        base.reconnect_max_delay_ms =
+            static_cast<std::int64_t>(**reconnect_max_delay_ms);
+      }
+
+      if (base.handshake_timeout_ms < 0 || base.idle_timeout_ms < 0 ||
+          base.reconnect_initial_delay_ms < 0 || base.reconnect_max_delay_ms < 0)
+      {
+        return std::unexpected(ConfigError::ParseFailed);
+      }
+      if (base.reconnect_initial_delay_ms > base.reconnect_max_delay_ms)
+      {
+        return std::unexpected(ConfigError::ParseFailed);
+      }
+
+      return base;
+    }
+
     std::expected<LoggingConfig, ConfigError>
     parse_logging(simdjson::ondemand::object &root, LoggingConfig base)
     {
@@ -248,6 +313,16 @@ namespace kalshi
       return OutputConfig{.raw_messages_path = "logs/ws_messages.json"};
     }
 
+    WsConfig default_ws_config()
+    {
+      return WsConfig{.handshake_timeout_ms = 30000,
+                      .idle_timeout_ms = 60000,
+                      .keep_alive_pings = true,
+                      .auto_reconnect = true,
+                      .reconnect_initial_delay_ms = 500,
+                      .reconnect_max_delay_ms = 30000};
+    }
+
   } // namespace
 
   std::expected<Config, ConfigError> load_config(const std::string &path)
@@ -280,6 +355,17 @@ namespace kalshi
     auto ws_url = get_string(root.value(), "ws_url");
     auto subscription = parse_subscription(root.value());
 
+    WsConfig ws_cfg = default_ws_config();
+    if (auto ws = root.value()["ws"]; !ws.error())
+    {
+      auto parsed = parse_ws(root.value(), ws_cfg);
+      if (!parsed)
+      {
+        return std::unexpected(ConfigError::ParseFailed);
+      }
+      ws_cfg = std::move(*parsed);
+    }
+
     LoggingConfig logging = default_logging_config();
     if (auto log = root.value()["logging"]; !log.error())
     {
@@ -310,6 +396,7 @@ namespace kalshi
     return Config{.env = std::move(*env),
                   .ws_url = std::move(*ws_url),
                   .subscription = std::move(*subscription),
+                  .ws = std::move(ws_cfg),
                   .logging = std::move(logging),
                   .output = std::move(output)};
   }

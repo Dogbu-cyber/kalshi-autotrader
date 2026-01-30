@@ -1,6 +1,14 @@
 {
   "env": "prod",
   "ws_url": "wss://api.elections.kalshi.com/trade-api/ws/v2",
+  "ws": {
+    "handshake_timeout_ms": 30000,
+    "idle_timeout_ms": 60000,
+    "keep_alive_pings": true,
+    "auto_reconnect": true,
+    "reconnect_initial_delay_ms": 500,
+    "reconnect_max_delay_ms": 30000
+  },
   "subscription": {
     "channels": ["orderbook_delta"],
     "market_tickers": ["KXGOVSHUT-26JAN31"]
