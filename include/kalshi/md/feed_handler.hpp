@@ -23,17 +23,21 @@ namespace kalshi::md
 {
 
   template <MarketSink Sink>
+  /** Owns websocket connection and dispatches messages to a sink. */
   class FeedHandler
   {
   public:
+    /** Construct with a market sink and logger. */
     FeedHandler(Sink &sink, kalshi::logging::Logger &logger)
         : sink_(sink), logger_(logger) {}
 
+    /** Errors returned by run(). */
     enum class RunError
     {
       OutputOpenFailed
     };
 
+    /** Runtime options for websocket run. */
     struct RunOptions
     {
       std::string ws_url;
@@ -45,6 +49,7 @@ namespace kalshi::md
       std::size_t max_messages = 0; // 0 = unlimited
     };
 
+    /** Shared state for async callbacks. */
     struct RunState
     {
       std::string subscribe_cmd;
@@ -52,6 +57,7 @@ namespace kalshi::md
       std::shared_ptr<RunLimiter> limiter;
     };
 
+    /** Start websocket loop and dispatch messages until stopped. */
     [[nodiscard]] std::expected<void, RunError> run(boost::asio::io_context &ioc,
                                                     boost::asio::ssl::context &ssl_ctx,
                                                     RunOptions options)

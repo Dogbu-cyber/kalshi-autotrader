@@ -19,6 +19,7 @@
 namespace kalshi::md
 {
 
+  /** Websocket connection and IO errors. */
   enum class WsError
   {
     InvalidUrl,
@@ -30,6 +31,7 @@ namespace kalshi::md
     WriteFailed
   };
 
+  /** Parsed websocket URL parts. */
   struct WsUrl
   {
     std::string host;
@@ -37,8 +39,10 @@ namespace kalshi::md
     std::string target;
   };
 
+  /** Parse wss:// URL into host/port/target. */
   [[nodiscard]] std::expected<WsUrl, WsError> parse_ws_url(std::string_view url);
 
+  /** Async websocket client using Boost.Beast. */
   class WsClient
   {
   public:
@@ -46,14 +50,21 @@ namespace kalshi::md
     using ErrorCallback = std::function<void(WsError, std::string_view)>;
     using OpenCallback = std::function<void()>;
 
+    /** Construct client with IO and SSL contexts. */
     WsClient(boost::asio::io_context &ioc, boost::asio::ssl::context &ssl_ctx);
 
+    /** Register callback for each received text message. */
     void set_message_callback(MessageCallback cb);
+    /** Register callback for connection or IO errors. */
     void set_error_callback(ErrorCallback cb);
+    /** Register callback invoked after websocket handshake completes. */
     void set_open_callback(OpenCallback cb);
 
+    /** Connect to websocket and apply headers. */
     void connect(const std::string &url, const std::vector<kalshi::Header> &headers);
+    /** Send a text message. */
     void send_text(std::string payload);
+    /** Close websocket gracefully. */
     void close();
 
   private:

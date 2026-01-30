@@ -16,6 +16,7 @@
 namespace kalshi::logging
 {
 
+  /** Configuration for AsyncJsonLogger. */
   struct AsyncJsonLoggerOptions
   {
     LogLevel level = LogLevel::Info;
@@ -24,10 +25,13 @@ namespace kalshi::logging
     std::string output_path = "logs/kalshi.log.json";
   };
 
+  /** Async JSON file logger with bounded queue. */
   class AsyncJsonLogger : public Logger
   {
   public:
+    /** Construct logger and start background writer thread. */
     explicit AsyncJsonLogger(AsyncJsonLoggerOptions options);
+    /** Flush and stop background writer thread. */
     ~AsyncJsonLogger() override;
 
     using Logger::log;
@@ -37,6 +41,7 @@ namespace kalshi::logging
     AsyncJsonLogger(AsyncJsonLogger &&) = delete;
     AsyncJsonLogger &operator=(AsyncJsonLogger &&) = delete;
 
+    /** Enqueue log event for background writer thread. */
     void log(LogEvent event) override;
     [[nodiscard]] LogLevel level() const override { return level_; }
 

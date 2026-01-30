@@ -7,6 +7,7 @@
 namespace kalshi::md
 {
 
+  /** Subscribe command payload. */
   struct SubscribeRequest
   {
     int id;
@@ -14,6 +15,7 @@ namespace kalshi::md
     std::vector<std::string> market_tickers;
   };
 
+  /** Build JSON subscribe command from request. */
   [[nodiscard]] std::string build_subscribe_command(const SubscribeRequest &req);
 
 } // namespace kalshi::md

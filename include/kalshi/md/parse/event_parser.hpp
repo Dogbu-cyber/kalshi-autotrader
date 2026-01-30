@@ -9,10 +9,13 @@
 namespace kalshi::md
 {
 
+  /** Parse full orderbook snapshot event. */
   [[nodiscard]] std::expected<OrderbookSnapshot, ParseError> parse_orderbook_snapshot(
       std::string_view json);
+  /** Parse orderbook delta event. */
   [[nodiscard]] std::expected<OrderbookDelta, ParseError> parse_orderbook_delta(
       std::string_view json);
+  /** Parse trade event. */
   [[nodiscard]] std::expected<TradeEvent, ParseError> parse_trade_event(
       std::string_view json);
 

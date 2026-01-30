@@ -9,6 +9,7 @@
 namespace kalshi::logging
 {
 
+  /** Immutable log event queued to the async logger. */
   struct LogEvent
   {
     std::uint64_t ts_ms;

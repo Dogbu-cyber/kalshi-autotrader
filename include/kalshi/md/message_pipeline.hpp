@@ -13,9 +13,11 @@ namespace kalshi::md
 {
 
   template <MarketSink Sink>
+  /** Routes raw websocket messages through sinks, parsing, and logging. */
   class MessagePipeline
   {
   public:
+    /** Construct a pipeline with optional raw sink and logging behavior. */
     MessagePipeline(Sink &sink,
                     kalshi::logging::Logger &logger,
                     std::unique_ptr<RawMessageSink> raw_sink,
@@ -25,6 +27,7 @@ namespace kalshi::md
           include_raw_on_parse_error_(include_raw_on_parse_error),
           log_raw_messages_(log_raw_messages) {}
 
+    /** Process a single websocket message. */
     void on_message(std::string_view message)
     {
       if (raw_sink_)

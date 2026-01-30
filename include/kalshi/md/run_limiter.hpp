@@ -5,14 +5,18 @@
 namespace kalshi::md
 {
 
+  /** Tracks message counts and stop conditions for a run loop. */
   class RunLimiter
   {
   public:
+    /** Construct with max_messages (0 = unlimited). */
     explicit RunLimiter(std::size_t max_messages)
         : remaining_(max_messages), seen_(0) {}
 
+    /** Increment the seen message count. */
     void on_message() { ++seen_; }
 
+    /** Return true if the run should stop after this message. */
     [[nodiscard]] bool should_stop()
     {
       if (remaining_ == 0)
@@ -23,6 +27,7 @@ namespace kalshi::md
       return remaining_ == 0;
     }
 
+    /** Return total messages seen so far. */
     [[nodiscard]] std::size_t seen() const { return seen_; }
 
   private:

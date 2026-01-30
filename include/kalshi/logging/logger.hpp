@@ -9,14 +9,18 @@
 namespace kalshi::logging
 {
 
+  /** Sink interface for log events. */
   class Logger
   {
   public:
     virtual ~Logger() = default;
 
+    /** Enqueue a prebuilt event. */
     virtual void log(LogEvent event) = 0;
+    /** Current minimum level for emission. */
     [[nodiscard]] virtual LogLevel level() const = 0;
 
+    /** Log a message without fields. */
     void log(LogLevel level, std::string component, std::string message)
     {
       LogEvent event{.ts_ms = 0,
@@ -29,6 +33,7 @@ namespace kalshi::logging
       log(std::move(event));
     }
 
+    /** Log a message with structured fields. */
     void log(LogLevel level, std::string component, std::string message, LogFields fields)
     {
       LogEvent event{.ts_ms = 0,
@@ -41,6 +46,7 @@ namespace kalshi::logging
       log(std::move(event));
     }
 
+    /** Log a message with an attached raw payload. */
     void log_raw(LogLevel level,
                  std::string component,
                  std::string message,

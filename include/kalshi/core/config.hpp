@@ -8,18 +8,21 @@
 namespace kalshi
 {
 
+  /** Errors returned while loading config.json. */
   enum class ConfigError
   {
     FileOpenFailed,
     ParseFailed
   };
 
+  /** Websocket subscription parameters. */
   struct SubscriptionConfig
   {
     std::vector<std::string> channels;
     std::vector<std::string> market_tickers;
   };
 
+  /** Logging configuration for async logger. */
   struct LoggingConfig
   {
     std::string level;
@@ -30,11 +33,13 @@ namespace kalshi
     std::string output_path;
   };
 
+  /** Output destinations for raw message capture. */
   struct OutputConfig
   {
     std::string raw_messages_path;
   };
 
+  /** Top-level runtime configuration loaded from config.json. */
   struct Config
   {
     std::string env;
@@ -44,9 +49,9 @@ namespace kalshi
     OutputConfig output;
   };
 
-  // Load config.json from disk.
+  /** Load and parse config.json. */
   [[nodiscard]] std::expected<Config, ConfigError> load_config(const std::string &path);
-  // Resolve final websocket URL (env overrides, if any).
+  /** Resolve final websocket URL for the configured environment. */
   [[nodiscard]] std::string resolve_ws_url(const Config &config);
 
 } // namespace kalshi

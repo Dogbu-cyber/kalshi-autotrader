@@ -8,6 +8,7 @@
 namespace kalshi::md
 {
 
+  /** Concept for compile-time market event sinks. */
   template <typename Sink>
   concept MarketSink = requires(Sink s,
                                 const OrderbookSnapshot &snap,
@@ -20,6 +21,7 @@ namespace kalshi::md
     { s.on_status(status) } -> std::same_as<void>;
   };
 
+  /** Fan-out sink to broadcast events to multiple sinks. */
   template <MarketSink... Sinks>
   class FanoutSink
   {

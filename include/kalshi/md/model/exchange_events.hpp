@@ -9,12 +9,14 @@
 namespace kalshi::md
 {
 
+  /** Single price level in an orderbook. */
   struct PriceLevel
   {
     Price price; // cents
     Size size;
   };
 
+  /** Full orderbook snapshot. */
   struct OrderbookSnapshot
   {
     MarketTicker market_ticker;
@@ -24,6 +26,7 @@ namespace kalshi::md
     Timestamp ts;
   };
 
+  /** Incremental orderbook update. */
   struct OrderbookDelta
   {
     MarketTicker market_ticker;
@@ -35,6 +38,7 @@ namespace kalshi::md
     Timestamp ts;
   };
 
+  /** Trade execution event. */
   struct TradeEvent
   {
     MarketTicker market_ticker;
@@ -45,6 +49,7 @@ namespace kalshi::md
     Timestamp ts;
   };
 
+  /** Market status update event. */
   struct MarketStatusUpdate
   {
     MarketTicker market_ticker;

@@ -3,6 +3,7 @@
 namespace kalshi::md
 {
 
+  /** Message type strings from Kalshi websocket API. */
   inline constexpr const char *ORDERBOOK_SNAPSHOT = "orderbook_snapshot";
   inline constexpr const char *ORDERBOOK_DELTA = "orderbook_delta";
   inline constexpr const char *TRADE = "trade";
