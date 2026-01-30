@@ -7,6 +7,7 @@ This repo builds a Kalshi market-data research platform in C++23. It prioritizes
 - Build: `./scripts/build.sh`
 - Run: `./scripts/run.sh`
 - Clang-tidy: `./scripts/clang_tidy.sh`
+- Format: `./scripts/format.sh`
 
 ## Architecture (current)
 - `include/kalshi/core/` — auth/config/endpoints

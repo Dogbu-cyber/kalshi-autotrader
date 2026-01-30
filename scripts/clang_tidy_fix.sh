@@ -18,4 +18,4 @@ else
   exit 1
 fi
 
-"$CLANG_TIDY_BIN" -p "$ROOT_DIR" -j "$(sysctl -n hw.ncpu)"
+"$CLANG_TIDY_BIN" -p "$ROOT_DIR" -fix -fix-errors
