@@ -71,7 +71,7 @@ namespace
       std::cerr << "config load failed" << std::endl;
       return std::nullopt;
     }
-    return std::move(*config_result);
+    return *config_result;
   }
 
   std::optional<kalshi::AuthConfig>
@@ -86,7 +86,7 @@ namespace
                  std::move(fields));
       return std::nullopt;
     }
-    return std::move(*auth);
+    return *auth;
   }
 
   bool requires_market_tickers(const kalshi::Config &config)
@@ -124,7 +124,7 @@ namespace
                  std::move(fields));
       return std::nullopt;
     }
-    return std::move(*built_headers);
+    return *built_headers;
   }
 
   std::optional<kalshi::logging::AsyncJsonLoggerOptions>
