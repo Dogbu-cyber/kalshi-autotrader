@@ -4,20 +4,42 @@
 #include <cstdint>
 #include <string>
 
-namespace kalshi::md {
+namespace kalshi::md
+{
 
-using MarketTicker = std::string;
-using Sequence = std::uint64_t;
-using Price = std::uint16_t; // 0-100 (or 0-99) cents
-using Size = std::uint32_t;
-using Delta = std::int32_t;
-using Count = std::uint32_t;
-using Timestamp = std::chrono::nanoseconds;
+  // Market ticker identifier (e.g., KXGOVSHUT-26JAN31).
+  using MarketTicker = std::string;
+  // Monotonic sequence number per market stream.
+  using Sequence = std::uint64_t;
+  // Price in cents (0-100).
+  using Price = std::uint16_t; // 0-100 (or 0-99) cents
+  // Aggregate size at a price level.
+  using Size = std::uint32_t;
+  // Signed change in size for a price level.
+  using Delta = std::int32_t;
+  // Trade count (number of contracts).
+  using Count = std::uint32_t;
+  // Timestamp in nanoseconds.
+  using Timestamp = std::chrono::nanoseconds;
 
-inline constexpr Price PRICE_MAX = 100;
+  // Max supported price in cents.
+  inline constexpr Price PRICE_MAX = 100;
 
-enum class BookSide { Yes, No };
+  // Orderbook side.
+  enum class BookSide
+  {
+    Yes,
+    No
+  };
 
-enum class MarketStatus { Unopened, Open, Paused, Closed, Settled };
+  // Market lifecycle status.
+  enum class MarketStatus
+  {
+    Unopened,
+    Open,
+    Paused,
+    Closed,
+    Settled
+  };
 
 } // namespace kalshi::md

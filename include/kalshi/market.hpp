@@ -2,16 +2,19 @@
 
 #include <cstdint>
 
-namespace kalshi {
+namespace kalshi
+{
 
-using MarketId = std::int32_t;
+  using MarketId = std::int32_t;
 
-enum class MarketStatus {
-  Unopened,
-  Open,
-  Paused,
-  Closed,
-  Settled
-};
+  // High-level market status values.
+  enum class MarketStatus
+  {
+    Unopened,
+    Open,
+    Paused,
+    Closed,
+    Settled
+  };
 
 } // namespace kalshi
