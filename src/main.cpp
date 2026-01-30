@@ -120,6 +120,27 @@ namespace
                         .ws_url = std::move(ws_url)};
     }
 
+    kalshi::md::FeedHandler<LoggingSink>::RunOptions build_run_options() const
+    {
+      return kalshi::md::FeedHandler<LoggingSink>::RunOptions{
+          .ws_url = ws_url,
+          .headers = headers,
+          .subscribe_cmd = subscription.json(),
+          .output_path = config.output.raw_messages_path,
+          .include_raw_on_parse_error = config.logging.include_raw_on_parse_error,
+          .log_raw_messages = config.logging.log_raw_messages,
+          .auto_reconnect = config.ws.auto_reconnect,
+          .reconnect_initial_delay =
+              std::chrono::milliseconds(config.ws.reconnect_initial_delay_ms),
+          .reconnect_max_delay =
+              std::chrono::milliseconds(config.ws.reconnect_max_delay_ms),
+          .handshake_timeout =
+              std::chrono::milliseconds(config.ws.handshake_timeout_ms),
+          .idle_timeout = std::chrono::milliseconds(config.ws.idle_timeout_ms),
+          .keep_alive_pings = config.ws.keep_alive_pings,
+          .max_messages = 50};
+    }
+
   private:
     static std::optional<kalshi::logging::AsyncJsonLoggerOptions>
     build_logger_options(const kalshi::Config &config)
@@ -198,25 +219,7 @@ int main()
   ssl_ctx.set_default_verify_paths();
   ssl_ctx.set_verify_mode(boost::asio::ssl::verify_peer);
 
-  kalshi::md::FeedHandler<LoggingSink>::RunOptions run_options{
-      .ws_url = ctx->ws_url,
-      .headers = ctx->headers,
-      .subscribe_cmd = ctx->subscription.json(),
-      .output_path = ctx->config.output.raw_messages_path,
-      .include_raw_on_parse_error = ctx->config.logging.include_raw_on_parse_error,
-      .log_raw_messages = ctx->config.logging.log_raw_messages,
-      .auto_reconnect = ctx->config.ws.auto_reconnect,
-      .reconnect_initial_delay =
-          std::chrono::milliseconds(ctx->config.ws.reconnect_initial_delay_ms),
-      .reconnect_max_delay =
-          std::chrono::milliseconds(ctx->config.ws.reconnect_max_delay_ms),
-      .handshake_timeout =
-          std::chrono::milliseconds(ctx->config.ws.handshake_timeout_ms),
-      .idle_timeout = std::chrono::milliseconds(ctx->config.ws.idle_timeout_ms),
-      .keep_alive_pings = ctx->config.ws.keep_alive_pings,
-      .max_messages = 50};
-
-  auto run_result = handler.run(ioc, ssl_ctx, std::move(run_options));
+  auto run_result = handler.run(ioc, ssl_ctx, ctx->build_run_options());
   if (!run_result)
   {
     ctx->logger->log(kalshi::logging::LogLevel::Error, "md.feed_handler",
