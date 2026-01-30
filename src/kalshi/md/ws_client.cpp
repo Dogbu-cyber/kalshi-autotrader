@@ -28,7 +28,8 @@ std::expected<WsUrl, WsError> parse_ws_url(std::string_view url) {
   std::string_view rest = url.substr(WSS_PREFIX.size());
   auto slash = rest.find('/');
   std::string_view host_port = rest.substr(0, slash);
-  std::string_view target = slash == std::string_view::npos ? "/" : rest.substr(slash);
+  std::string_view target =
+      slash == std::string_view::npos ? "/" : rest.substr(slash);
 
   if (host_port.empty()) {
     return std::unexpected(WsError::InvalidUrl);
@@ -49,15 +50,20 @@ std::expected<WsUrl, WsError> parse_ws_url(std::string_view url) {
   return WsUrl{std::string(host), std::string(port), std::string(target)};
 }
 
-WsClient::WsClient(boost::asio::io_context& ioc, boost::asio::ssl::context& ssl_ctx)
-  : resolver_(ioc),
-    ws_(ioc, ssl_ctx) {}
+WsClient::WsClient(boost::asio::io_context &ioc,
+                   boost::asio::ssl::context &ssl_ctx)
+    : resolver_(ioc), ws_(ioc, ssl_ctx) {}
 
-void WsClient::set_message_callback(MessageCallback cb) { on_message_ = std::move(cb); }
-void WsClient::set_error_callback(ErrorCallback cb) { on_error_ = std::move(cb); }
+void WsClient::set_message_callback(MessageCallback cb) {
+  on_message_ = std::move(cb);
+}
+void WsClient::set_error_callback(ErrorCallback cb) {
+  on_error_ = std::move(cb);
+}
 void WsClient::set_open_callback(OpenCallback cb) { on_open_ = std::move(cb); }
 
-void WsClient::connect(const std::string& url, const std::vector<kalshi::Header>& headers) {
+void WsClient::connect(const std::string &url,
+                       const std::vector<kalshi::Header> &headers) {
   auto parsed = parse_ws_url(url);
   if (!parsed) {
     fail(parsed.error(), "invalid url");
@@ -84,8 +90,9 @@ void WsClient::close() {
   ws_.close(boost::beast::websocket::close_code::normal, ec);
 }
 
-void WsClient::on_resolve(boost::system::error_code ec,
-                          boost::asio::ip::tcp::resolver::results_type results) {
+void WsClient::on_resolve(
+    boost::system::error_code ec,
+    boost::asio::ip::tcp::resolver::results_type results) {
   if (ec) {
     fail(WsError::ResolveFailed, ec.message());
     return;
@@ -93,18 +100,19 @@ void WsClient::on_resolve(boost::system::error_code ec,
 
   boost::beast::get_lowest_layer(ws_).expires_after(CONNECT_TIMEOUT);
   boost::beast::get_lowest_layer(ws_).async_connect(
-    results, boost::beast::bind_front_handler(&WsClient::on_connect, this));
+      results, boost::beast::bind_front_handler(&WsClient::on_connect, this));
 }
 
 void WsClient::on_connect(
-  boost::system::error_code ec,
-  boost::asio::ip::tcp::resolver::results_type::endpoint_type) {
+    boost::system::error_code ec,
+    boost::asio::ip::tcp::resolver::results_type::endpoint_type) {
   if (ec) {
     fail(WsError::ConnectFailed, ec.message());
     return;
   }
 
-  if (!SSL_set_tlsext_host_name(ws_.next_layer().native_handle(), host_.c_str())) {
+  if (!SSL_set_tlsext_host_name(ws_.next_layer().native_handle(),
+                                host_.c_str())) {
     boost::system::error_code ssl_ec{static_cast<int>(::ERR_get_error()),
                                      boost::asio::error::get_ssl_category()};
     fail(WsError::SslHandshakeFailed, ssl_ec.message());
@@ -112,8 +120,8 @@ void WsClient::on_connect(
   }
 
   ws_.next_layer().async_handshake(
-    boost::asio::ssl::stream_base::client,
-    boost::beast::bind_front_handler(&WsClient::on_ssl_handshake, this));
+      boost::asio::ssl::stream_base::client,
+      boost::beast::bind_front_handler(&WsClient::on_ssl_handshake, this));
 }
 
 void WsClient::on_ssl_handshake(boost::system::error_code ec) {
@@ -122,8 +130,9 @@ void WsClient::on_ssl_handshake(boost::system::error_code ec) {
     return;
   }
 
-  ws_.async_handshake(host_, target_,
-                      boost::beast::bind_front_handler(&WsClient::on_ws_handshake, this));
+  ws_.async_handshake(
+      host_, target_,
+      boost::beast::bind_front_handler(&WsClient::on_ws_handshake, this));
 }
 
 void WsClient::on_ws_handshake(boost::system::error_code ec) {
@@ -139,7 +148,8 @@ void WsClient::on_ws_handshake(boost::system::error_code ec) {
 }
 
 void WsClient::do_read() {
-  ws_.async_read(buffer_, boost::beast::bind_front_handler(&WsClient::on_read, this));
+  ws_.async_read(buffer_,
+                 boost::beast::bind_front_handler(&WsClient::on_read, this));
 }
 
 void WsClient::on_read(boost::system::error_code ec, std::size_t) {
@@ -170,21 +180,22 @@ void WsClient::fail(WsError err, std::string_view msg) {
 
 void WsClient::configure_timeouts() {
   ws_.set_option(boost::beast::websocket::stream_base::timeout::suggested(
-    boost::beast::role_type::client));
+      boost::beast::role_type::client));
 }
 
 void WsClient::configure_headers() {
   ws_.set_option(boost::beast::websocket::stream_base::decorator(
-    [this](boost::beast::websocket::request_type& req) {
-      for (const auto& header : headers_) {
-        req.set(header.first, header.second);
-      }
-    }));
+      [this](boost::beast::websocket::request_type &req) {
+        for (const auto &header : headers_) {
+          req.set(header.first, header.second);
+        }
+      }));
 }
 
 void WsClient::resolve_host(std::string port) {
-  resolver_.async_resolve(host_, port,
-                          boost::beast::bind_front_handler(&WsClient::on_resolve, this));
+  resolver_.async_resolve(
+      host_, port,
+      boost::beast::bind_front_handler(&WsClient::on_resolve, this));
 }
 
 } // namespace kalshi::md

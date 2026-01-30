@@ -14,8 +14,8 @@ namespace kalshi::md {
 
 namespace {
 
-std::expected<std::string, ParseError> get_string(simdjson::ondemand::object& obj,
-                                                  std::string_view key) {
+std::expected<std::string, ParseError>
+get_string(simdjson::ondemand::object &obj, std::string_view key) {
   auto field = obj[key];
   if (field.error()) {
     return std::unexpected(ParseError::MissingField);
@@ -27,7 +27,7 @@ std::expected<std::string, ParseError> get_string(simdjson::ondemand::object& ob
   return std::string(s.value());
 }
 
-std::expected<std::int64_t, ParseError> get_int(simdjson::ondemand::object& obj,
+std::expected<std::int64_t, ParseError> get_int(simdjson::ondemand::object &obj,
                                                 std::string_view key) {
   auto field = obj[key];
   if (field.error()) {
@@ -50,9 +50,8 @@ std::expected<BookSide, ParseError> parse_side(std::string_view side) {
   return std::unexpected(ParseError::InvalidField);
 }
 
-std::expected<std::vector<PriceLevel>, ParseError> parse_levels(
-  simdjson::ondemand::object& obj,
-  std::string_view key) {
+std::expected<std::vector<PriceLevel>, ParseError>
+parse_levels(simdjson::ondemand::object &obj, std::string_view key) {
   auto field = obj[key];
   if (field.error()) {
     return std::unexpected(ParseError::MissingField);
@@ -85,7 +84,8 @@ std::expected<std::vector<PriceLevel>, ParseError> parse_levels(
       return std::unexpected(ParseError::InvalidField);
     }
     if (size.value() < 0 ||
-        size.value() > static_cast<std::int64_t>(std::numeric_limits<Size>::max())) {
+        size.value() >
+            static_cast<std::int64_t>(std::numeric_limits<Size>::max())) {
       return std::unexpected(ParseError::InvalidField);
     }
     levels.push_back(PriceLevel{static_cast<Price>(price.value()),
@@ -97,7 +97,7 @@ std::expected<std::vector<PriceLevel>, ParseError> parse_levels(
 
 using DocumentResult = simdjson::simdjson_result<simdjson::ondemand::document>;
 
-std::expected<Sequence, ParseError> get_sequence(DocumentResult& doc) {
+std::expected<Sequence, ParseError> get_sequence(DocumentResult &doc) {
   auto field = doc[FIELD_SEQ];
   if (field.error()) {
     return std::unexpected(ParseError::MissingField);
@@ -109,8 +109,8 @@ std::expected<Sequence, ParseError> get_sequence(DocumentResult& doc) {
   return val.value();
 }
 
-std::expected<simdjson::ondemand::object, ParseError> get_message_object(
-  DocumentResult& doc) {
+std::expected<simdjson::ondemand::object, ParseError>
+get_message_object(DocumentResult &doc) {
   auto msg = doc[FIELD_MSG].get_object();
   if (msg.error()) {
     return std::unexpected(ParseError::MissingField);
@@ -118,7 +118,7 @@ std::expected<simdjson::ondemand::object, ParseError> get_message_object(
   return msg.value();
 }
 
-std::optional<std::string> get_optional_string(simdjson::ondemand::object& obj,
+std::optional<std::string> get_optional_string(simdjson::ondemand::object &obj,
                                                std::string_view key) {
   auto field = obj[key];
   if (field.error()) {
@@ -131,7 +131,7 @@ std::optional<std::string> get_optional_string(simdjson::ondemand::object& obj,
   return std::string(val.value());
 }
 
-Timestamp parse_optional_timestamp(simdjson::ondemand::object& obj) {
+Timestamp parse_optional_timestamp(simdjson::ondemand::object &obj) {
   auto field = obj[FIELD_TIMESTAMP];
   if (field.error()) {
     return Timestamp{0};
@@ -140,7 +140,8 @@ Timestamp parse_optional_timestamp(simdjson::ondemand::object& obj) {
   if (val.error()) {
     return Timestamp{0};
   }
-  return std::chrono::duration_cast<Timestamp>(std::chrono::seconds(val.value()));
+  return std::chrono::duration_cast<Timestamp>(
+      std::chrono::seconds(val.value()));
 }
 
 struct SnapshotFields {
@@ -166,8 +167,8 @@ struct TradeFields {
   Timestamp ts;
 };
 
-std::expected<SnapshotFields, ParseError> parse_snapshot_fields(
-  simdjson::ondemand::object& obj) {
+std::expected<SnapshotFields, ParseError>
+parse_snapshot_fields(simdjson::ondemand::object &obj) {
   auto market = get_string(obj, FIELD_MARKET_TICKER);
   if (!market) {
     return std::unexpected(market.error());
@@ -188,7 +189,8 @@ std::expected<SnapshotFields, ParseError> parse_snapshot_fields(
                         .no = std::move(*no)};
 }
 
-std::expected<DeltaFields, ParseError> parse_delta_fields(simdjson::ondemand::object& obj) {
+std::expected<DeltaFields, ParseError>
+parse_delta_fields(simdjson::ondemand::object &obj) {
   auto market = get_string(obj, FIELD_MARKET_TICKER);
   if (!market) {
     return std::unexpected(market.error());
@@ -225,10 +227,12 @@ std::expected<DeltaFields, ParseError> parse_delta_fields(simdjson::ondemand::ob
                      .price = static_cast<Price>(*price),
                      .delta = static_cast<Delta>(*delta),
                      .side = *side,
-                     .client_order_id = get_optional_string(obj, FIELD_CLIENT_ORDER_ID)};
+                     .client_order_id =
+                         get_optional_string(obj, FIELD_CLIENT_ORDER_ID)};
 }
 
-std::expected<TradeFields, ParseError> parse_trade_fields(simdjson::ondemand::object& obj) {
+std::expected<TradeFields, ParseError>
+parse_trade_fields(simdjson::ondemand::object &obj) {
   auto market = get_string(obj, FIELD_MARKET_TICKER);
   if (!market) {
     return std::unexpected(market.error());
@@ -276,8 +280,8 @@ std::expected<TradeFields, ParseError> parse_trade_fields(simdjson::ondemand::ob
 
 } // namespace
 
-std::expected<OrderbookSnapshot, ParseError> parse_orderbook_snapshot(
-  std::string_view json) {
+std::expected<OrderbookSnapshot, ParseError>
+parse_orderbook_snapshot(std::string_view json) {
   simdjson::ondemand::parser parser;
   simdjson::padded_string padded(json.data(), json.size());
   auto doc = parser.iterate(padded);
@@ -307,7 +311,8 @@ std::expected<OrderbookSnapshot, ParseError> parse_orderbook_snapshot(
                            .ts = Timestamp{0}};
 }
 
-std::expected<OrderbookDelta, ParseError> parse_orderbook_delta(std::string_view json) {
+std::expected<OrderbookDelta, ParseError>
+parse_orderbook_delta(std::string_view json) {
   simdjson::ondemand::parser parser;
   simdjson::padded_string padded(json.data(), json.size());
   auto doc = parser.iterate(padded);

@@ -6,9 +6,11 @@
 
 #include "kalshi/md/parse/parse_errors.hpp"
 
-namespace kalshi::md {
+namespace kalshi::md
+{
 
-[[nodiscard]] std::expected<std::string, ParseError> parse_message_type(
-  std::string_view json);
+  // Extract message type string from a websocket JSON payload.
+  [[nodiscard]] std::expected<std::string, ParseError> parse_message_type(
+      std::string_view json);
 
 } // namespace kalshi::md

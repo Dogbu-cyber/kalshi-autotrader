@@ -6,7 +6,8 @@
 
 namespace kalshi::md {
 
-std::expected<std::string, ParseError> parse_message_type(std::string_view json) {
+std::expected<std::string, ParseError>
+parse_message_type(std::string_view json) {
   if (json.empty()) {
     return std::unexpected(ParseError::EmptyMessage);
   }

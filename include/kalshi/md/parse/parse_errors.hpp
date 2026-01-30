@@ -1,14 +1,17 @@
 #pragma once
 
-namespace kalshi::md {
+namespace kalshi::md
+{
 
-enum class ParseError {
-  EmptyMessage,
-  InvalidJson,
-  MissingType,
-  MissingField,
-  InvalidField,
-  UnsupportedType
-};
+  // Parsing errors for websocket message handling.
+  enum class ParseError
+  {
+    EmptyMessage,
+    InvalidJson,
+    MissingType,
+    MissingField,
+    InvalidField,
+    UnsupportedType
+  };
 
 } // namespace kalshi::md

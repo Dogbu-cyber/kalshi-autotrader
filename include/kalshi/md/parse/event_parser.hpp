@@ -6,13 +6,17 @@
 #include "kalshi/md/model/exchange_events.hpp"
 #include "kalshi/md/parse/parse_errors.hpp"
 
-namespace kalshi::md {
+namespace kalshi::md
+{
 
-[[nodiscard]] std::expected<OrderbookSnapshot, ParseError> parse_orderbook_snapshot(
-  std::string_view json);
-[[nodiscard]] std::expected<OrderbookDelta, ParseError> parse_orderbook_delta(
-  std::string_view json);
-[[nodiscard]] std::expected<TradeEvent, ParseError> parse_trade_event(
-  std::string_view json);
+  // Parse full orderbook snapshot event.
+  [[nodiscard]] std::expected<OrderbookSnapshot, ParseError> parse_orderbook_snapshot(
+      std::string_view json);
+  // Parse orderbook delta event.
+  [[nodiscard]] std::expected<OrderbookDelta, ParseError> parse_orderbook_delta(
+      std::string_view json);
+  // Parse trade event.
+  [[nodiscard]] std::expected<TradeEvent, ParseError> parse_trade_event(
+      std::string_view json);
 
 } // namespace kalshi::md
