@@ -218,6 +218,16 @@ int main()
       .output_path = config->output.raw_messages_path,
       .include_raw_on_parse_error = config->logging.include_raw_on_parse_error,
       .log_raw_messages = config->logging.log_raw_messages,
+      .auto_reconnect = config->ws.auto_reconnect,
+      .reconnect_initial_delay = std::chrono::milliseconds(
+          config->ws.reconnect_initial_delay_ms),
+      .reconnect_max_delay = std::chrono::milliseconds(
+          config->ws.reconnect_max_delay_ms),
+      .handshake_timeout = std::chrono::milliseconds(
+          config->ws.handshake_timeout_ms),
+      .idle_timeout = std::chrono::milliseconds(
+          config->ws.idle_timeout_ms),
+      .keep_alive_pings = config->ws.keep_alive_pings,
       .max_messages = 50};
 
   auto run_result = handler.run(ioc, ssl_ctx, std::move(run_options));

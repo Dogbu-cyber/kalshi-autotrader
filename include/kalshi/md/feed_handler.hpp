@@ -22,6 +22,7 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
+#include <chrono>
 
 namespace kalshi::md
 {
@@ -63,6 +64,9 @@ namespace kalshi::md
       bool auto_reconnect = true;
       std::chrono::milliseconds reconnect_initial_delay{500};
       std::chrono::milliseconds reconnect_max_delay{30000};
+      std::chrono::milliseconds handshake_timeout{30000};
+      std::chrono::milliseconds idle_timeout{60000};
+      bool keep_alive_pings = true;
       std::size_t max_messages = 0; // 0 = unlimited
     };
 
@@ -82,6 +86,9 @@ namespace kalshi::md
       std::chrono::milliseconds reconnect_initial_delay{500};
       std::chrono::milliseconds reconnect_delay{500};
       std::chrono::milliseconds reconnect_max_delay{30000};
+      std::chrono::milliseconds handshake_timeout{30000};
+      std::chrono::milliseconds idle_timeout{60000};
+      bool keep_alive_pings = true;
       boost::asio::io_context *ioc = nullptr;
       boost::asio::ssl::context *ssl_ctx = nullptr;
     };
@@ -135,6 +142,9 @@ namespace kalshi::md
                      .reconnect_initial_delay = options.reconnect_initial_delay,
                      .reconnect_delay = options.reconnect_initial_delay,
                      .reconnect_max_delay = options.reconnect_max_delay,
+                     .handshake_timeout = options.handshake_timeout,
+                     .idle_timeout = options.idle_timeout,
+                     .keep_alive_pings = options.keep_alive_pings,
                      .ioc = nullptr,
                      .ssl_ctx = nullptr};
       return state;
@@ -160,7 +170,10 @@ namespace kalshi::md
       client.set_control_callback([this](boost::beast::websocket::frame_type kind,
                                          std::string_view payload)
                                   { on_control(kind, payload); });
-      client.set_timeouts(CONNECT_TIMEOUT, IDLE_TIMEOUT, true);
+      client.set_timeouts(
+          std::chrono::duration_cast<std::chrono::seconds>(state.handshake_timeout),
+          std::chrono::duration_cast<std::chrono::seconds>(state.idle_timeout),
+          state.keep_alive_pings);
     }
 
     void on_open(RunState &state)
