@@ -271,7 +271,7 @@ namespace kalshi::md
     {
       kalshi::logging::LogFields fields;
       fields.add_string("payload", std::string(payload));
-      logger_.log(kalshi::logging::LogLevel::Debug, "md.ws_client",
+      logger_.log(kalshi::logging::LogLevel::Info, "md.ws_client",
                   kind == boost::beast::websocket::frame_type::ping
                       ? "ws_ping"
                       : kind == boost::beast::websocket::frame_type::pong
