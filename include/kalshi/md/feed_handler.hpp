@@ -17,6 +17,7 @@
 #include <expected>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -56,6 +57,7 @@ namespace kalshi::md
     {
       std::string ws_url;
       std::vector<kalshi::Header> headers;
+      std::function<std::optional<std::vector<kalshi::Header>>()> refresh_headers;
       std::string subscribe_cmd;
       std::string output_path;
       bool include_raw_on_parse_error = true;
@@ -298,6 +300,19 @@ namespace kalshi::md
         if (ec)
         {
           return;
+        }
+        if (state.options.refresh_headers)
+        {
+          auto refreshed = state.options.refresh_headers();
+          if (refreshed)
+          {
+            state.options.headers = std::move(*refreshed);
+          }
+          else
+          {
+            log(kalshi::logging::LogLevel::Error, "md.ws_client",
+                "refresh_headers_failed");
+          }
         }
         connect_client(state);
       });

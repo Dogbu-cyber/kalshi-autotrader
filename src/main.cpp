@@ -122,9 +122,13 @@ namespace
 
     kalshi::md::FeedHandler<LoggingSink>::RunOptions build_run_options() const
     {
+      auto refresh = [this]() -> std::optional<std::vector<kalshi::Header>> {
+        return build_headers(auth, *logger);
+      };
       return kalshi::md::FeedHandler<LoggingSink>::RunOptions{
           .ws_url = ws_url,
           .headers = headers,
+          .refresh_headers = refresh,
           .subscribe_cmd = subscription.json(),
           .output_path = config.output.raw_messages_path,
           .include_raw_on_parse_error = config.logging.include_raw_on_parse_error,
