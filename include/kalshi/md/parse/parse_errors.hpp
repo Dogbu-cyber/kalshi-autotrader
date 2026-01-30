@@ -3,7 +3,9 @@
 namespace kalshi::md
 {
 
-  /** Parsing errors for websocket messages. */
+  /**
+   * Parsing errors for websocket messages.
+   */
   enum class ParseError
   {
     EmptyMessage,

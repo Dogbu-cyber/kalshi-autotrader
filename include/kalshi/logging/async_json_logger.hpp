@@ -29,9 +29,14 @@ namespace kalshi::logging
   class AsyncJsonLogger : public Logger
   {
   public:
-    /** Construct logger and start background writer thread. */
+    /**
+     * Construct logger and start background writer thread.
+     * @param options Logger configuration options.
+     */
     explicit AsyncJsonLogger(AsyncJsonLoggerOptions options);
-    /** Flush and stop background writer thread. */
+    /**
+     * Flush and stop background writer thread.
+     */
     ~AsyncJsonLogger() override;
 
     using Logger::log;
@@ -41,8 +46,16 @@ namespace kalshi::logging
     AsyncJsonLogger(AsyncJsonLogger &&) = delete;
     AsyncJsonLogger &operator=(AsyncJsonLogger &&) = delete;
 
-    /** Enqueue log event for background writer thread. */
+    /**
+     * Enqueue log event for background writer thread.
+     * @param event Log event to enqueue.
+     * @return void.
+     */
     void log(LogEvent event) override;
+    /**
+     * Return current minimum log level.
+     * @return LogLevel.
+     */
     [[nodiscard]] LogLevel level() const override { return level_; }
 
   private:

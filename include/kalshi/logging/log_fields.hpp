@@ -16,7 +16,9 @@ namespace kalshi::logging
   /** Single key/value field. */
   struct LogField
   {
+    /** Field name. */
     std::string key;
+    /** Field value. */
     LogFieldValue value;
   };
 
@@ -24,45 +26,75 @@ namespace kalshi::logging
   class LogFields
   {
   public:
-    /** Add string field. */
+    /**
+     * Add string field.
+     * @param key Field name.
+     * @param value Field value.
+     */
     void add_string(std::string key, std::string value)
     {
       fields_.push_back(LogField{std::move(key), std::move(value)});
     }
 
-    /** Add signed integer field. */
+    /**
+     * Add signed integer field.
+     * @param key Field name.
+     * @param value Field value.
+     */
     void add_int(std::string key, std::int64_t value)
     {
       fields_.push_back(LogField{std::move(key), value});
     }
 
-    /** Add unsigned integer field. */
+    /**
+     * Add unsigned integer field.
+     * @param key Field name.
+     * @param value Field value.
+     */
     void add_uint(std::string key, std::uint64_t value)
     {
       fields_.push_back(LogField{std::move(key), value});
     }
 
-    /** Add floating point field. */
+    /**
+     * Add floating point field.
+     * @param key Field name.
+     * @param value Field value.
+     */
     void add_double(std::string key, double value)
     {
       fields_.push_back(LogField{std::move(key), value});
     }
 
-    /** Add boolean field. */
+    /**
+     * Add boolean field.
+     * @param key Field name.
+     * @param value Field value.
+     */
     void add_bool(std::string key, bool value)
     {
       fields_.push_back(LogField{std::move(key), value});
     }
 
-    /** Add string array field. */
+    /**
+     * Add string array field.
+     * @param key Field name.
+     * @param values Field values.
+     */
     void add_string_list(std::string key, std::vector<std::string> values)
     {
       fields_.push_back(LogField{std::move(key), std::move(values)});
     }
 
-    /** Return true if no fields were added. */
+    /**
+     * Return true if no fields were added.
+     * @return True if empty.
+     */
     [[nodiscard]] bool empty() const { return fields_.empty(); }
-    /** Access raw entries for serialization. */
+    /**
+     * Access raw entries for serialization.
+     * @return Vector of LogField entries.
+     */
     [[nodiscard]] const std::vector<LogField> &entries() const { return fields_; }
 
   private:

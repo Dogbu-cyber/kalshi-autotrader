@@ -15,7 +15,11 @@ namespace kalshi::md
     std::vector<std::string> market_tickers;
   };
 
-  /** Build JSON subscribe command from request. */
+  /**
+   * Build JSON subscribe command from request.
+   * @param req Subscribe request.
+   * @return JSON payload string.
+   */
   [[nodiscard]] std::string build_subscribe_command(const SubscribeRequest &req);
 
 } // namespace kalshi::md

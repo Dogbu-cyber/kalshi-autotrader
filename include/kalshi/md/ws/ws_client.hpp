@@ -39,7 +39,11 @@ namespace kalshi::md
     std::string target;
   };
 
-  /** Parse wss:// URL into host/port/target. */
+  /**
+   * Parse wss:// URL into host/port/target.
+   * @param url Websocket URL.
+   * @return WsUrl or WsError.
+   */
   [[nodiscard]] std::expected<WsUrl, WsError> parse_ws_url(std::string_view url);
 
   /** Async websocket client using Boost.Beast. */
@@ -50,21 +54,49 @@ namespace kalshi::md
     using ErrorCallback = std::function<void(WsError, std::string_view)>;
     using OpenCallback = std::function<void()>;
 
-    /** Construct client with IO and SSL contexts. */
+    /**
+     * Construct client with IO and SSL contexts.
+     * @param ioc IO context.
+     * @param ssl_ctx SSL context.
+     */
     WsClient(boost::asio::io_context &ioc, boost::asio::ssl::context &ssl_ctx);
 
-    /** Register callback for each received text message. */
+    /**
+     * Register callback for each received text message.
+     * @param cb Callback to invoke.
+     * @return void.
+     */
     void set_message_callback(MessageCallback cb);
-    /** Register callback for connection or IO errors. */
+    /**
+     * Register callback for connection or IO errors.
+     * @param cb Callback to invoke.
+     * @return void.
+     */
     void set_error_callback(ErrorCallback cb);
-    /** Register callback invoked after websocket handshake completes. */
+    /**
+     * Register callback invoked after websocket handshake completes.
+     * @param cb Callback to invoke.
+     * @return void.
+     */
     void set_open_callback(OpenCallback cb);
 
-    /** Connect to websocket and apply headers. */
+    /**
+     * Connect to websocket and apply headers.
+     * @param url Websocket URL.
+     * @param headers Auth headers.
+     * @return void.
+     */
     void connect(const std::string &url, const std::vector<kalshi::Header> &headers);
-    /** Send a text message. */
+    /**
+     * Send a text message.
+     * @param payload Text payload.
+     * @return void.
+     */
     void send_text(std::string payload);
-    /** Close websocket gracefully. */
+    /**
+     * Close websocket gracefully.
+     * @return void.
+     */
     void close();
 
   private:

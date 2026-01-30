@@ -13,7 +13,11 @@ namespace kalshi::logging
     DropNewest
   };
 
-  /** Parse drop policy string. */
+  /**
+   * Parse drop policy string.
+   * @param text Input string.
+   * @return Parsed DropPolicy or std::nullopt.
+   */
   [[nodiscard]] std::optional<DropPolicy> parse_drop_policy(std::string_view text);
 
 } // namespace kalshi::logging

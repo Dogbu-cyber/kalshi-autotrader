@@ -13,13 +13,19 @@ namespace kalshi::md
 {
 
   template <MarketSink Sink>
-  /** Dispatches parsed websocket messages to a market sink. */
+  /**
+   * Dispatches parsed websocket messages to a market sink.
+   */
   class Dispatcher
   {
   public:
     explicit Dispatcher(Sink &sink) : sink_(sink) {}
 
-    /** Parse type and route to the appropriate sink handler. */
+    /**
+     * Parse type and route to the appropriate sink handler.
+     * @param json Raw websocket message.
+     * @return std::expected<void, ParseError>.
+     */
     [[nodiscard]] std::expected<void, ParseError> on_message(std::string_view json)
     {
       auto type = parse_message_type(json);

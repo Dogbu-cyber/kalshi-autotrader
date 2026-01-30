@@ -8,16 +8,28 @@
 namespace kalshi::md
 {
 
-  /** Raw message sink that appends JSON lines to a file. */
+  /**
+   * Raw message sink that appends JSON lines to a file.
+   */
   class FileRawMessageSink final : public RawMessageSink
   {
   public:
-    /** Open the output file and create parent directories if needed. */
+    /**
+     * Open the output file and create parent directories if needed.
+     * @param path Output file path.
+     */
     explicit FileRawMessageSink(std::string path);
 
-    /** Write a message as a single JSON line. */
+    /**
+     * Write a message as a single JSON line.
+     * @param message Raw websocket message.
+     * @return void.
+     */
     void write(std::string_view message) override;
-    /** Return true if the output file is open. */
+    /**
+     * Return true if the output file is open.
+     * @return True when file is open.
+     */
     [[nodiscard]] bool ok() const { return out_.is_open(); }
 
   private:

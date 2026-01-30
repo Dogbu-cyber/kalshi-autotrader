@@ -23,21 +23,31 @@ namespace kalshi::md
 {
 
   template <MarketSink Sink>
-  /** Owns websocket connection and dispatches messages to a sink. */
+  /**
+   * Owns websocket connection and dispatches messages to a sink.
+   */
   class FeedHandler
   {
   public:
-    /** Construct with a market sink and logger. */
+    /**
+     * Construct with a market sink and logger.
+     * @param sink Market event sink.
+     * @param logger Logger for diagnostics.
+     */
     FeedHandler(Sink &sink, kalshi::logging::Logger &logger)
         : sink_(sink), logger_(logger) {}
 
-    /** Errors returned by run(). */
+    /**
+     * Errors returned by run().
+     */
     enum class RunError
     {
       OutputOpenFailed
     };
 
-    /** Runtime options for websocket run. */
+    /**
+     * Runtime options for websocket run.
+     */
     struct RunOptions
     {
       std::string ws_url;
@@ -49,7 +59,9 @@ namespace kalshi::md
       std::size_t max_messages = 0; // 0 = unlimited
     };
 
-    /** Shared state for async callbacks. */
+    /**
+     * Shared state for async callbacks.
+     */
     struct RunState
     {
       std::string subscribe_cmd;
@@ -57,7 +69,13 @@ namespace kalshi::md
       std::shared_ptr<RunLimiter> limiter;
     };
 
-    /** Start websocket loop and dispatch messages until stopped. */
+    /**
+     * Start websocket loop and dispatch messages until stopped.
+     * @param ioc IO context for async operations.
+     * @param ssl_ctx SSL context for TLS.
+     * @param options Run options.
+     * @return std::expected<void, RunError>.
+     */
     [[nodiscard]] std::expected<void, RunError> run(boost::asio::io_context &ioc,
                                                     boost::asio::ssl::context &ssl_ctx,
                                                     RunOptions options)

@@ -49,9 +49,17 @@ namespace kalshi
     OutputConfig output;
   };
 
-  /** Load and parse config.json. */
+  /**
+   * Load and parse config.json.
+   * @param path Path to config.json.
+   * @return Parsed Config or ConfigError.
+   */
   [[nodiscard]] std::expected<Config, ConfigError> load_config(const std::string &path);
-  /** Resolve final websocket URL for the configured environment. */
+  /**
+   * Resolve final websocket URL for the configured environment.
+   * @param config Loaded config.
+   * @return Resolved websocket URL.
+   */
   [[nodiscard]] std::string resolve_ws_url(const Config &config);
 
 } // namespace kalshi
