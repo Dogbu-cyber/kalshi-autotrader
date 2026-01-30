@@ -29,6 +29,10 @@ bool requires_market_tickers(const std::vector<std::string> &channels) {
 
 } // namespace
 
+SubscriptionCommand::SubscriptionCommand(SubscribeRequest request)
+    : request_(std::move(request)),
+      json_(build_subscribe_command(request_)) {}
+
 std::expected<SubscribeRequest, SubscribeError>
 build_subscribe_request(const kalshi::Config &config, int id) {
   if (requires_market_tickers(config.subscription.channels) &&
@@ -53,6 +57,15 @@ std::string build_subscribe_command(const SubscribeRequest &req) {
   }
   out << "}}";
   return out.str();
+}
+
+std::expected<SubscriptionCommand, SubscribeError>
+build_subscription_command(const kalshi::Config &config, int id) {
+  auto request = build_subscribe_request(config, id);
+  if (!request) {
+    return std::unexpected(request.error());
+  }
+  return SubscriptionCommand(std::move(*request));
 }
 
 } // namespace kalshi::md
