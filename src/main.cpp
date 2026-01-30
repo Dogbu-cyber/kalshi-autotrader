@@ -5,7 +5,6 @@
 #include "kalshi/logging/log_level.hpp"
 #include "kalshi/logging/log_policy.hpp"
 #include "kalshi/md/feed_handler.hpp"
-#include "kalshi/md/protocol/message_types.hpp"
 #include "kalshi/md/protocol/subscribe.hpp"
 
 #include <algorithm>
@@ -89,22 +88,6 @@ namespace
     return *auth;
   }
 
-  bool requires_market_tickers(const kalshi::Config &config)
-  {
-    return std::find(config.subscription.channels.begin(),
-                     config.subscription.channels.end(),
-                     kalshi::md::ORDERBOOK_DELTA) !=
-           config.subscription.channels.end();
-  }
-
-  std::string build_subscribe_command(const kalshi::Config &config)
-  {
-    kalshi::md::SubscribeRequest subscribe{
-        .id = 1,
-        .channels = config.subscription.channels,
-        .market_tickers = config.subscription.market_tickers};
-    return kalshi::md::build_subscribe_command(subscribe);
-  }
 
   std::optional<std::vector<kalshi::Header>>
   build_headers_or_log(const kalshi::AuthConfig &auth,
@@ -175,15 +158,14 @@ int main()
     return 1;
   }
 
-  auto subscribe_cmd = build_subscribe_command(*config);
-
-  if (requires_market_tickers(*config) &&
-      config->subscription.market_tickers.empty())
+  auto subscribe_request = kalshi::md::build_subscribe_request(*config, 1);
+  if (!subscribe_request)
   {
     logger.log(kalshi::logging::LogLevel::Error, "core.config",
                "orderbook_delta_requires_market_tickers");
     return 1;
   }
+  auto subscribe_cmd = kalshi::md::build_subscribe_command(*subscribe_request);
 
   LoggingSink sink{.logger = logger};
   kalshi::md::FeedHandler handler(sink, logger);

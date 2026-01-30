@@ -1,7 +1,10 @@
 #include "kalshi/md/protocol/subscribe.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <sstream>
+
+#include "kalshi/md/protocol/message_types.hpp"
 
 namespace kalshi::md {
 
@@ -19,7 +22,25 @@ void append_string_array(std::ostringstream &out,
   out << "]";
 }
 
+bool requires_market_tickers(const std::vector<std::string> &channels) {
+  return std::find(channels.begin(), channels.end(), ORDERBOOK_DELTA) !=
+         channels.end();
+}
+
 } // namespace
+
+std::expected<SubscribeRequest, SubscribeError>
+build_subscribe_request(const kalshi::Config &config, int id) {
+  if (requires_market_tickers(config.subscription.channels) &&
+      config.subscription.market_tickers.empty()) {
+    return std::unexpected(SubscribeError::MissingMarketTickers);
+  }
+
+  SubscribeRequest request{.id = id,
+                           .channels = config.subscription.channels,
+                           .market_tickers = config.subscription.market_tickers};
+  return request;
+}
 
 std::string build_subscribe_command(const SubscribeRequest &req) {
   std::ostringstream out;
