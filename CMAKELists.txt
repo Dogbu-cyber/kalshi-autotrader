@@ -19,6 +19,9 @@ endif()
 add_library(kalshi_core
   src/kalshi/config.cpp
   src/kalshi/auth.cpp
+  src/kalshi/logging/async_json_logger.cpp
+  src/kalshi/logging/log_level.cpp
+  src/kalshi/logging/log_policy.cpp
   src/kalshi/md/protocol.cpp
   src/kalshi/md/message_parser.cpp
   src/kalshi/md/event_parser.cpp
