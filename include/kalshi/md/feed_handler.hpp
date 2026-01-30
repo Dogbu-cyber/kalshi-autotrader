@@ -39,7 +39,7 @@ namespace kalshi::md
      * @param logger Logger for diagnostics.
      */
     FeedHandler(Sink &sink, kalshi::logging::Logger &logger)
-        : sink_(sink), logger_(logger), dispatcher_(sink_) {}
+        : sink_(sink), logger_(logger) {}
 
     /**
      * Errors returned by run().
@@ -70,32 +70,6 @@ namespace kalshi::md
     };
 
     /**
-     * Shared state for async callbacks.
-     */
-    struct RunState
-    {
-      std::string subscribe_cmd;
-      std::shared_ptr<std::ofstream> out;
-      std::size_t remaining = 0;
-      std::size_t seen = 0;
-      std::shared_ptr<WsClient> client;
-      std::shared_ptr<boost::asio::steady_timer> reconnect_timer;
-      std::string ws_url;
-      std::vector<kalshi::Header> headers;
-      bool auto_reconnect = true;
-      std::chrono::milliseconds reconnect_initial_delay{500};
-      std::chrono::milliseconds reconnect_delay{500};
-      std::chrono::milliseconds reconnect_max_delay{30000};
-      std::chrono::milliseconds handshake_timeout{30000};
-      std::chrono::milliseconds idle_timeout{60000};
-      bool keep_alive_pings = true;
-      bool include_raw_on_parse_error = true;
-      bool log_raw_messages = false;
-      boost::asio::io_context *ioc = nullptr;
-      boost::asio::ssl::context *ssl_ctx = nullptr;
-    };
-
-    /**
      * Start websocket loop and dispatch messages until stopped.
      * @param ioc IO context for async operations.
      * @param ssl_ctx SSL context for TLS.
@@ -106,10 +80,10 @@ namespace kalshi::md
                                                     boost::asio::ssl::context &ssl_ctx,
                                                     RunOptions options)
     {
-      auto state_result = init_state(options);
+      auto state_result = init_state(std::move(options));
       if (!state_result)
       {
-        log_error("md.feed_handler", "output_open_failed");
+        log(kalshi::logging::LogLevel::Error, "md.feed_handler", "output_open_failed");
         return std::unexpected(state_result.error());
       }
 
@@ -122,7 +96,46 @@ namespace kalshi::md
     }
 
   private:
-    [[nodiscard]] std::expected<RunState, RunError> init_state(const RunOptions &options)
+    struct ReconnectState
+    {
+      bool enabled = true;
+      std::chrono::milliseconds initial{500};
+      std::chrono::milliseconds max{30000};
+      std::chrono::milliseconds current{500};
+
+      ReconnectState() = default;
+      ReconnectState(bool enabled,
+                     std::chrono::milliseconds initial,
+                     std::chrono::milliseconds max)
+          : enabled(enabled), initial(initial), max(max), current(initial) {}
+
+      void reset() { current = initial; }
+
+      std::chrono::milliseconds next_delay()
+      {
+        auto delay = current;
+        if (current < max)
+        {
+          current = std::min(current * 2, max);
+        }
+        return delay;
+      }
+    };
+
+    struct RunState
+    {
+      RunOptions options;
+      std::shared_ptr<std::ofstream> out;
+      std::size_t remaining = 0;
+      std::size_t seen = 0;
+      std::shared_ptr<WsClient> client;
+      std::shared_ptr<boost::asio::steady_timer> reconnect_timer;
+      ReconnectState reconnect;
+      boost::asio::io_context *ioc = nullptr;
+      boost::asio::ssl::context *ssl_ctx = nullptr;
+    };
+
+    [[nodiscard]] std::expected<RunState, RunError> init_state(RunOptions options)
     {
       std::filesystem::path path(options.output_path);
       if (path.has_parent_path())
@@ -141,23 +154,17 @@ namespace kalshi::md
         return std::unexpected(RunError::OutputOpenFailed);
       }
 
-      RunState state{.subscribe_cmd = options.subscribe_cmd,
+      auto remaining = options.max_messages;
+      auto reconnect = ReconnectState(options.auto_reconnect,
+                                      options.reconnect_initial_delay,
+                                      options.reconnect_max_delay);
+      RunState state{.options = std::move(options),
                      .out = std::move(out),
-                     .remaining = options.max_messages,
+                     .remaining = remaining,
                      .seen = 0,
                      .client = nullptr,
                      .reconnect_timer = nullptr,
-                     .ws_url = options.ws_url,
-                     .headers = options.headers,
-                     .auto_reconnect = options.auto_reconnect,
-                     .reconnect_initial_delay = options.reconnect_initial_delay,
-                     .reconnect_delay = options.reconnect_initial_delay,
-                     .reconnect_max_delay = options.reconnect_max_delay,
-                     .handshake_timeout = options.handshake_timeout,
-                     .idle_timeout = options.idle_timeout,
-                     .keep_alive_pings = options.keep_alive_pings,
-                     .include_raw_on_parse_error = options.include_raw_on_parse_error,
-                     .log_raw_messages = options.log_raw_messages,
+                     .reconnect = reconnect,
                      .ioc = nullptr,
                      .ssl_ctx = nullptr};
       return state;
@@ -167,35 +174,37 @@ namespace kalshi::md
     {
       state.client = std::make_shared<WsClient>(*state.ioc, *state.ssl_ctx);
       configure_callbacks(*state.client, *state.ioc, state);
-      state.client->connect(state.ws_url, state.headers);
+      state.client->connect(state.options.ws_url, state.options.headers);
     }
 
     void configure_callbacks(WsClient &client,
                              boost::asio::io_context &ioc,
                              RunState &state)
     {
-      client.set_open_callback([this, &state]() mutable
-                               { on_open(state); });
-      client.set_message_callback([this, &ioc, &state](std::string msg)
-                                  { on_message(ioc, state, std::move(msg)); });
-      client.set_error_callback([this, &ioc, &state](WsError err, std::string_view msg)
-                                { on_error(ioc, state, err, msg); });
+      client.set_open_callback([this, &state]() mutable { on_open(state); });
+      client.set_message_callback([this, &ioc, &state](std::string msg) {
+        on_message(ioc, state, std::move(msg));
+      });
+      client.set_error_callback([this, &ioc, &state](WsError err, std::string_view msg) {
+        on_error(ioc, state, err, msg);
+      });
       client.set_control_callback([this](boost::beast::websocket::frame_type kind,
-                                         std::string_view payload)
-                                  { on_control(kind, payload); });
+                                         std::string_view payload) {
+        on_control(kind, payload);
+      });
       client.set_timeouts(
-          std::chrono::duration_cast<std::chrono::seconds>(state.handshake_timeout),
-          std::chrono::duration_cast<std::chrono::seconds>(state.idle_timeout),
-          state.keep_alive_pings);
+          std::chrono::duration_cast<std::chrono::seconds>(state.options.handshake_timeout),
+          std::chrono::duration_cast<std::chrono::seconds>(state.options.idle_timeout),
+          state.options.keep_alive_pings);
     }
 
     void on_open(RunState &state)
     {
-      log_info("md.ws_client", "ws_open");
-      state.reconnect_delay = state.reconnect_initial_delay;
-      if (!state.subscribe_cmd.empty())
+      log(kalshi::logging::LogLevel::Info, "md.ws_client", "ws_open");
+      state.reconnect.reset();
+      if (!state.options.subscribe_cmd.empty())
       {
-        state.client->send_text(state.subscribe_cmd);
+        state.client->send_text(state.options.subscribe_cmd);
       }
     }
 
@@ -206,7 +215,7 @@ namespace kalshi::md
       (*state.out) << msg << "\n";
       state.out->flush();
 
-      if (state.log_raw_messages)
+      if (state.options.log_raw_messages)
       {
         kalshi::logging::LogFields fields;
         fields.add_uint("bytes", static_cast<std::uint64_t>(msg.size()));
@@ -217,18 +226,14 @@ namespace kalshi::md
 
       if (state.seen == 0)
       {
-        log_info("md.feed_handler", "first_message_received");
+        log(kalshi::logging::LogLevel::Info, "md.feed_handler", "first_message_received");
       }
       ++state.seen;
 
-      auto dispatched = dispatcher_.on_message(msg);
-      if (!dispatched && dispatched.error() != ParseError::UnsupportedType)
-      {
-        log_parse_error(dispatched.error(), msg, state.include_raw_on_parse_error);
-      }
+      auto dispatched = dispatch_message(msg, state.options.include_raw_on_parse_error);
       if (!dispatched && dispatched.error() == ParseError::UnsupportedType)
       {
-        log_debug("md.dispatcher", "unsupported_message_type");
+        log(kalshi::logging::LogLevel::Debug, "md.dispatcher", "unsupported_message_type");
       }
 
       if (state.remaining > 0)
@@ -236,7 +241,7 @@ namespace kalshi::md
         --state.remaining;
         if (state.remaining == 0)
         {
-          log_info("md.feed_handler", "max_messages_reached");
+          log(kalshi::logging::LogLevel::Info, "md.feed_handler", "max_messages_reached");
           state.client->close();
           ioc.stop();
         }
@@ -253,7 +258,7 @@ namespace kalshi::md
       fields.add_string("message", std::string(msg));
       logger_.log(kalshi::logging::LogLevel::Error, "md.ws_client", "ws_error",
                   std::move(fields));
-      if (!state.auto_reconnect)
+      if (!state.reconnect.enabled)
       {
         ioc.stop();
         return;
@@ -281,12 +286,7 @@ namespace kalshi::md
       {
         state.reconnect_timer = std::make_shared<boost::asio::steady_timer>(ioc);
       }
-      auto delay = state.reconnect_delay;
-      if (state.reconnect_delay < state.reconnect_max_delay)
-      {
-        state.reconnect_delay =
-            std::min(state.reconnect_delay * 2, state.reconnect_max_delay);
-      }
+      auto delay = state.reconnect.next_delay();
 
       kalshi::logging::LogFields fields;
       fields.add_int("delay_ms", static_cast<std::int64_t>(delay.count()));
@@ -303,22 +303,16 @@ namespace kalshi::md
       });
     }
 
-    void log_info(std::string_view component, std::string_view message)
+    std::expected<void, ParseError> dispatch_message(std::string_view msg,
+                                                     bool include_raw_on_parse_error)
     {
-      logger_.log(kalshi::logging::LogLevel::Info, std::string(component),
-                  std::string(message));
-    }
-
-    void log_debug(std::string_view component, std::string_view message)
-    {
-      logger_.log(kalshi::logging::LogLevel::Debug, std::string(component),
-                  std::string(message));
-    }
-
-    void log_error(std::string_view component, std::string_view message)
-    {
-      logger_.log(kalshi::logging::LogLevel::Error, std::string(component),
-                  std::string(message));
+      Dispatcher<Sink> dispatcher(sink_);
+      auto dispatched = dispatcher.on_message(msg);
+      if (!dispatched && dispatched.error() != ParseError::UnsupportedType)
+      {
+        log_parse_error(dispatched.error(), msg, include_raw_on_parse_error);
+      }
+      return dispatched;
     }
 
     void log_parse_error(ParseError error,
@@ -337,9 +331,15 @@ namespace kalshi::md
                   "parse_error", std::move(fields));
     }
 
+    void log(kalshi::logging::LogLevel level,
+             std::string_view component,
+             std::string_view message)
+    {
+      logger_.log(level, std::string(component), std::string(message));
+    }
+
     Sink &sink_;
     kalshi::logging::Logger &logger_;
-    Dispatcher<Sink> dispatcher_;
   };
 
 } // namespace kalshi::md
